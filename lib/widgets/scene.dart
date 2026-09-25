@@ -15,12 +15,12 @@ class SkyPalette {
   static SkyPalette forPeriod(Salah? current, Salah next) {
     final phase = current ?? (next == Salah.dhuhr ? Salah.sunrise : next);
     return switch (phase) {
-      Salah.fajr => const SkyPalette([Color(0xFF0F1A4A), Color(0xFF2B45B8)], stars: true, moon: true, glow: Color(0xFF7C9CFF)),
-      Salah.sunrise => const SkyPalette([Color(0xFF1D4ED8), Color(0xFF60A5FA)], glow: Color(0xFFFCD34D)),
-      Salah.dhuhr => const SkyPalette([Color(0xFF1E5BE0), Color(0xFF5B9BFA)]),
-      Salah.asr => const SkyPalette([Color(0xFF1E40AF), Color(0xFF4F83F1)], glow: Color(0xFFFDE68A)),
-      Salah.maghrib => const SkyPalette([Color(0xFF172A6B), Color(0xFF3F4FC8)], glow: Color(0xFFFB923C)),
-      Salah.isha => const SkyPalette([Color(0xFF070D26), Color(0xFF1B2A6B)], stars: true, moon: true),
+      Salah.fajr => const SkyPalette([Color(0xFF06281D), Color(0xFF0F5A40)], stars: true, moon: true, glow: Color(0xFF6EE7B7)),
+      Salah.sunrise => const SkyPalette([Color(0xFF0B6B4A), Color(0xFF34C98E)], glow: Color(0xFFFCD34D)),
+      Salah.dhuhr => const SkyPalette([Color(0xFF0E7A54), Color(0xFF3FD19B)]),
+      Salah.asr => const SkyPalette([Color(0xFF0A5C40), Color(0xFF22A474)], glow: Color(0xFFFDE68A)),
+      Salah.maghrib => const SkyPalette([Color(0xFF093D2C), Color(0xFF157A58)], glow: Color(0xFFFB923C)),
+      Salah.isha => const SkyPalette([Color(0xFF03130D), Color(0xFF0B3325)], stars: true, moon: true),
     };
   }
 }

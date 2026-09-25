@@ -94,6 +94,12 @@ class _PrayersScreenState extends State<PrayersScreen> {
                 ),
               ),
               SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+                  child: TrackerProgress(day: _day),
+                ),
+              ),
+              SliverToBoxAdapter(
                 child: GestureDetector(
                   // Swipe between days.
                   onHorizontalDragEnd: (d) {
@@ -127,8 +133,6 @@ class _PrayersScreenState extends State<PrayersScreen> {
                 sliver: SliverList.list(
                   children: [
                     const SizedBox(height: 4),
-                    TrackerCard(day: _day),
-                    const SizedBox(height: 12),
                     _NextEventCard(now: now),
                     const SectionHeader('Fasting'),
                     Row(
@@ -362,6 +366,7 @@ class _PrayerList extends StatelessWidget {
             FadeIn(
               index: i,
               child: _PrayerCard(
+                day: times.date,
                 row: rows[i],
                 active: rows[i].salah != null && status?.current == rows[i].salah,
                 next: rows[i].salah != null && status?.next == rows[i].salah,
@@ -375,7 +380,8 @@ class _PrayerList extends StatelessWidget {
 }
 
 class _PrayerCard extends StatelessWidget {
-  const _PrayerCard({required this.row, required this.active, required this.next, required this.forbiddenNow});
+  const _PrayerCard({required this.day, required this.row, required this.active, required this.next, required this.forbiddenNow});
+  final DateTime day;
   final _Row row;
   final bool active;
   final bool next;
@@ -387,7 +393,7 @@ class _PrayerCard extends StatelessWidget {
     final accent = context.colors.primary;
     final dark = Theme.of(context).brightness == Brightness.dark;
     final salah = row.salah;
-    final alarm = salah != null && (state.alarms[salah] ?? false);
+    final trackable = salah != null && fardPrayers.contains(salah);
     final muted = context.tokens.muted;
     final iconColor = forbiddenNow ? AppColors.danger : (active ? accent : (salah == null ? muted : accent));
 
@@ -397,7 +403,7 @@ class _PrayerCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.fromLTRB(14, 12, 8, 12),
       decoration: BoxDecoration(
-        color: active ? context.tokens.accentSoft : (dark ? context.colors.surface : const Color(0xFFF2F4F7)),
+        color: active ? context.tokens.accentSoft : (dark ? context.colors.surface : const Color(0xFFEEF6F1)),
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
           color: active ? accent.withValues(alpha: 0.55) : (forbiddenNow ? AppColors.danger.withValues(alpha: 0.4) : Colors.transparent),
@@ -449,61 +455,23 @@ class _PrayerCard extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 4),
-          if (salah == null)
-            SizedBox(
-              width: 44,
-              child: Icon(Icons.block_rounded, size: 22, color: muted.withValues(alpha: 0.6)),
+          if (trackable)
+            Pressable(
+              onTap: () => editMark(context, day, salah),
+              onLongPress: () => editMark(context, day, salah, pick: true),
+              scale: 0.85,
+              child: SizedBox(
+                width: 44,
+                height: 40,
+                child: Center(child: MarkDot(mark: state.markOf(day, salah), size: 30)),
+              ),
             )
           else
-            _AlarmToggle(
-              on: alarm,
-              onTap: () {
-                HapticFeedback.selectionClick();
-                state.setAlarm(salah, !alarm);
-              },
+            SizedBox(
+              width: 44,
+              child: Icon(salah == null ? Icons.block_rounded : Icons.remove_rounded, size: 22, color: muted.withValues(alpha: 0.6)),
             ),
         ],
-      ),
-    );
-  }
-}
-
-class _AlarmToggle extends StatelessWidget {
-  const _AlarmToggle({required this.on, required this.onTap});
-  final bool on;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final accent = context.colors.primary;
-    return Pressable(
-      onTap: onTap,
-      scale: 0.85,
-      child: SizedBox(
-        width: 44,
-        height: 40,
-        child: Center(
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 220),
-            width: 30,
-            height: 30,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: on ? accent : Colors.transparent,
-              border: Border.all(color: on ? accent : context.tokens.muted.withValues(alpha: 0.5), width: 1.4),
-            ),
-            child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 200),
-              transitionBuilder: (c, a) => ScaleTransition(scale: a, child: c),
-              child: Icon(
-                on ? Icons.volume_up_rounded : Icons.volume_off_rounded,
-                key: ValueKey(on),
-                size: 16,
-                color: on ? Colors.white : context.tokens.muted,
-              ),
-            ),
-          ),
-        ),
       ),
     );
   }

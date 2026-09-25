@@ -131,22 +131,25 @@ class MarkDot extends StatelessWidget {
   }
 }
 
-/// Compact card for the Prayers tab: five checkable prayers for one day.
-class TrackerCard extends StatelessWidget {
-  const TrackerCard({super.key, required this.day});
+/// Progress summary for the Prayers tab; prayers are ticked off in the list below it.
+class TrackerProgress extends StatelessWidget {
+  const TrackerProgress({super.key, required this.day});
   final DateTime day;
 
   @override
   Widget build(BuildContext context) {
-    final state = AppState.instance;
     final done = prayedOn(day);
     final future = _dateOnly(day).isAfter(_dateOnly(DateTime.now()));
     return Panel(
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+      onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const TrackerScreen())),
+      padding: const EdgeInsets.fromLTRB(16, 12, 12, 12),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
+              Icon(done == 5 ? Icons.verified_rounded : Icons.task_alt_rounded, size: 20, color: context.colors.primary),
+              const SizedBox(width: 8),
               Text('Namaz tracker', style: context.text.titleMedium?.copyWith(fontSize: 15)),
               const SizedBox(width: 8),
               if (!future)
@@ -159,15 +162,8 @@ class TrackerCard extends StatelessWidget {
                   ),
                 ),
               const Spacer(),
-              GestureDetector(
-                onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const TrackerScreen())),
-                child: Row(
-                  children: [
-                    Text('Stats', style: TextStyle(color: context.colors.primary, fontWeight: FontWeight.w600, fontSize: 13)),
-                    Icon(Icons.chevron_right_rounded, size: 18, color: context.colors.primary),
-                  ],
-                ),
-              ),
+              Text('Stats', style: TextStyle(color: context.colors.primary, fontWeight: FontWeight.w600, fontSize: 13)),
+              Icon(Icons.chevron_right_rounded, size: 18, color: context.colors.primary),
             ],
           ),
           const SizedBox(height: 10),
@@ -179,34 +175,17 @@ class TrackerCard extends StatelessWidget {
               curve: Curves.easeOutCubic,
               builder: (_, v, _) => LinearProgressIndicator(
                 value: v,
-                minHeight: 5,
+                minHeight: 8,
                 backgroundColor: context.tokens.accentSoft,
                 color: context.colors.primary,
               ),
             ),
           ),
-          const SizedBox(height: 14),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              for (final p in fardPrayers)
-                Pressable(
-                  onTap: () => editMark(context, day, p),
-                  onLongPress: () => editMark(context, day, p, pick: true),
-                  scale: 0.9,
-                  child: Column(
-                    children: [
-                      MarkDot(mark: state.markOf(day, p), size: 40),
-                      const SizedBox(height: 6),
-                      Text(p.label, style: TextStyle(fontSize: 12, color: context.tokens.muted, fontWeight: FontWeight.w500)),
-                    ],
-                  ),
-                ),
-            ],
-          ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
           Text(
-            future ? 'You can log prayers once the day arrives' : 'Tap to mark prayed · hold for late or missed',
+            future
+                ? 'You can log prayers once the day arrives'
+                : (done == 5 ? 'All five prayed. Alhamdulillah.' : 'Tick each prayer below · hold for late or missed'),
             style: context.text.bodySmall?.copyWith(fontSize: 11.5),
           ),
         ],

@@ -35,6 +35,31 @@ class Bookmark {
   factory Bookmark.fromJson(Map<String, dynamic> j) => Bookmark(j['s'], j['a'], j['n']);
 }
 
+/// One dhikr counter. [count] runs across rounds; [total] survives resets.
+class TasbihItem {
+  TasbihItem({required this.name, this.arabic = '', this.target = 33, this.count = 0, this.total = 0});
+  String name;
+  String arabic;
+  int target; // 0 = no goal
+  int count;
+  int total;
+
+  int get rounds => target == 0 ? 0 : count ~/ target;
+  int get inRound => target == 0 ? count : count % target;
+
+  Map<String, dynamic> toJson() => {'n': name, 'a': arabic, 't': target, 'c': count, 'tot': total};
+  factory TasbihItem.fromJson(Map<String, dynamic> j) =>
+      TasbihItem(name: j['n'], arabic: j['a'] ?? '', target: j['t'] ?? 33, count: j['c'] ?? 0, total: j['tot'] ?? 0);
+}
+
+/// Counters a fresh install starts with.
+const defaultTasbihs = [
+  ('SubhanAllah', 'سُبْحَانَ اللَّهِ', 33),
+  ('Alhamdulillah', 'الْحَمْدُ لِلَّهِ', 33),
+  ('Allahu Akbar', 'اللَّهُ أَكْبَرُ', 34),
+  ('Astaghfirullah', 'أَسْتَغْفِرُ اللَّهَ', 100),
+];
+
 /// Single source of truth for user settings, persisted to SharedPreferences.
 class AppState extends ChangeNotifier {
   AppState._(this._prefs);
@@ -68,10 +93,9 @@ class AppState extends ChangeNotifier {
   Bookmark? lastRead;
 
   // Tasbih
-  late int tasbihCount;
-  late int tasbihTarget;
-  late int tasbihTotal;
-  late String tasbihPhrase;
+  late List<TasbihItem> tasbihs;
+  late int tasbihIndex;
+  late int tasbihBead; // index into the bead colour palette
   late Map<String, int> tasbihDaily; // 'yyyy-mm-dd' -> count
   late bool tasbihVibrate;
   late bool tasbihSound;
@@ -111,10 +135,26 @@ class AppState extends ChangeNotifier {
     final lr = p.getString('lastRead');
     lastRead = lr == null ? null : Bookmark.fromJson(jsonDecode(lr));
 
-    tasbihCount = p.getInt('tasbihCount') ?? 0;
-    tasbihTarget = p.getInt('tasbihTarget') ?? 33;
-    tasbihTotal = p.getInt('tasbihTotal') ?? 0;
-    tasbihPhrase = p.getString('tasbihPhrase') ?? 'SubhanAllah';
+    final items = p.getString('tasbihItems');
+    if (items != null) {
+      tasbihs = (jsonDecode(items) as List).map((e) => TasbihItem.fromJson(e)).toList();
+    } else {
+      // Seed defaults, carrying over the count from the old single counter.
+      final oldPhrase = p.getString('tasbihPhrase');
+      tasbihs = [
+        for (final d in defaultTasbihs)
+          TasbihItem(
+            name: d.$1,
+            arabic: d.$2,
+            target: d.$3,
+            count: d.$1 == oldPhrase ? p.getInt('tasbihCount') ?? 0 : 0,
+            total: d.$1 == oldPhrase ? p.getInt('tasbihTotal') ?? 0 : 0,
+          ),
+      ];
+    }
+    if (tasbihs.isEmpty) tasbihs = [TasbihItem(name: defaultTasbihs.first.$1, arabic: defaultTasbihs.first.$2)];
+    tasbihIndex = (p.getInt('tasbihIndex') ?? 0).clamp(0, tasbihs.length - 1);
+    tasbihBead = p.getInt('tasbihBead') ?? 2;
     tasbihVibrate = p.getBool('tasbihVibrate') ?? true;
     tasbihSound = p.getBool('tasbihSound') ?? false;
     final log = p.getString('prayerLog');
@@ -261,11 +301,21 @@ class AppState extends ChangeNotifier {
 
   int tasbihOn(DateTime d) => tasbihDaily[dayKey(d)] ?? 0;
 
+  TasbihItem get tasbih => tasbihs[tasbihIndex];
+
+  Future<void> _saveTasbihs() async {
+    notifyListeners();
+    await _prefs.setString('tasbihItems', jsonEncode([for (final t in tasbihs) t.toJson()]));
+    await _prefs.setInt('tasbihIndex', tasbihIndex);
+  }
+
   Future<void> tasbihTap() async {
-    tasbihCount++;
-    tasbihTotal++;
+    tasbih
+      ..count += 1
+      ..total += 1;
     final key = dayKey(DateTime.now());
     tasbihDaily[key] = (tasbihDaily[key] ?? 0) + 1;
+    notifyListeners(); // before any await, so the bead animation sees the new count this frame
     if (tasbihDaily.length > 60) {
       // Keep roughly two months of history.
       final keys = tasbihDaily.keys.toList()..sort();
@@ -273,16 +323,61 @@ class AppState extends ChangeNotifier {
         tasbihDaily.remove(k);
       }
     }
-    notifyListeners();
-    await _prefs.setInt('tasbihCount', tasbihCount);
-    await _prefs.setInt('tasbihTotal', tasbihTotal);
     await _prefs.setString('tasbihDaily', jsonEncode(tasbihDaily));
+    await _saveTasbihs();
   }
 
-  Future<void> setTasbihTarget(int target) async {
-    tasbihTarget = target;
-    await _prefs.setInt('tasbihTarget', target);
+  /// Takes back the last count, e.g. after an accidental swipe.
+  Future<void> tasbihUndo() async {
+    if (tasbih.count == 0) return;
+    tasbih
+      ..count -= 1
+      ..total = (tasbih.total - 1).clamp(0, tasbih.total);
     notifyListeners();
+    final key = dayKey(DateTime.now());
+    if ((tasbihDaily[key] ?? 0) > 0) {
+      tasbihDaily[key] = tasbihDaily[key]! - 1;
+      await _prefs.setString('tasbihDaily', jsonEncode(tasbihDaily));
+    }
+    await _saveTasbihs();
+  }
+
+  Future<void> tasbihReset() async {
+    tasbih.count = 0;
+    await _saveTasbihs();
+  }
+
+  Future<void> selectTasbih(int i) async {
+    if (i == tasbihIndex) return;
+    tasbihIndex = i;
+    await _saveTasbihs();
+  }
+
+  Future<void> addTasbih(TasbihItem t) async {
+    tasbihs.add(t);
+    tasbihIndex = tasbihs.length - 1;
+    await _saveTasbihs();
+  }
+
+  Future<void> updateTasbih(int i, {required String name, required String arabic, required int target}) async {
+    tasbihs[i]
+      ..name = name
+      ..arabic = arabic
+      ..target = target;
+    await _saveTasbihs();
+  }
+
+  Future<void> deleteTasbih(int i) async {
+    if (tasbihs.length <= 1) return;
+    tasbihs.removeAt(i);
+    tasbihIndex = tasbihIndex.clamp(0, tasbihs.length - 1);
+    await _saveTasbihs();
+  }
+
+  Future<void> setTasbihBead(int i) async {
+    tasbihBead = i;
+    notifyListeners();
+    await _prefs.setInt('tasbihBead', i);
   }
 
   Future<void> setTasbihFeedback({bool? vibrate, bool? sound}) async {
@@ -311,22 +406,6 @@ class AppState extends ChangeNotifier {
   Future<void> setHijriOffset(int days) async {
     hijriOffset = days;
     await _prefs.setInt('hijriOffset', days);
-    notifyListeners();
-  }
-
-  Future<void> tasbihReset() async {
-    tasbihCount = 0;
-    await _prefs.setInt('tasbihCount', 0);
-    notifyListeners();
-  }
-
-  Future<void> setTasbihPreset(String phrase, int target) async {
-    tasbihPhrase = phrase;
-    tasbihTarget = target;
-    tasbihCount = 0;
-    await _prefs.setString('tasbihPhrase', phrase);
-    await _prefs.setInt('tasbihTarget', target);
-    await _prefs.setInt('tasbihCount', 0);
     notifyListeners();
   }
 

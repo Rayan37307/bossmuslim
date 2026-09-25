@@ -4,23 +4,23 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class AppColors {
-  static const accent = Color(0xFF2563EB);
-  static const accentLight = Color(0xFF3B82F6);
-  static const accentDark = Color(0xFF1D4ED8);
+  static const accent = Color(0xFF0E8A5F);
+  static const accentLight = Color(0xFF22C58B);
+  static const accentDark = Color(0xFF0B6B4A);
 
   // Light
-  static const lightBg = Color(0xFFF7F8FA);
+  static const lightBg = Color(0xFFF6FAF8);
   static const lightSurface = Colors.white;
-  static const lightBorder = Color(0xFFE6E8EC);
-  static const lightText = Color(0xFF0F172A);
-  static const lightMuted = Color(0xFF64748B);
+  static const lightBorder = Color(0xFFE0EBE5);
+  static const lightText = Color(0xFF0F1F19);
+  static const lightMuted = Color(0xFF5E7068);
 
   // Dark
-  static const darkBg = Color(0xFF0B0F17);
-  static const darkSurface = Color(0xFF131926);
-  static const darkBorder = Color(0xFF222A3A);
-  static const darkText = Color(0xFFE8ECF3);
-  static const darkMuted = Color(0xFF8B95A7);
+  static const darkBg = Color(0xFF07110D);
+  static const darkSurface = Color(0xFF0F1D17);
+  static const darkBorder = Color(0xFF1E3029);
+  static const darkText = Color(0xFFE6F2EC);
+  static const darkMuted = Color(0xFF89A297);
 
   static const danger = Color(0xFFDC2626);
   static const warning = Color(0xFFD97706);
@@ -88,7 +88,7 @@ ThemeData buildTheme(Brightness brightness) {
     surfaceContainerLow: bg,
     surfaceContainer: surface,
     surfaceContainerHigh: surface,
-    surfaceContainerHighest: dark ? const Color(0xFF1A2130) : const Color(0xFFF1F3F6),
+    surfaceContainerHighest: dark ? const Color(0xFF152720) : const Color(0xFFEDF5F0),
     outline: border,
     outlineVariant: border,
   );
