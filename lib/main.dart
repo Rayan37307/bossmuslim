@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -30,9 +32,8 @@ class BossMuslimApp extends StatelessWidget {
       builder: (context, _) => MaterialApp(
         title: 'Boss Muslim',
         debugShowCheckedModeBanner: false,
-        theme: buildTheme(Brightness.light),
-        darkTheme: buildTheme(Brightness.dark),
-        themeMode: state.themeMode,
+        theme: buildTheme(),
+        themeMode: ThemeMode.dark,
         home: state.onboarded ? const RootShell() : const OnboardingScreen(),
       ),
     );
@@ -42,8 +43,7 @@ class BossMuslimApp extends StatelessWidget {
 class RootShell extends StatefulWidget {
   const RootShell({super.key});
 
-  static void goTo(BuildContext context, int tab) =>
-      context.findAncestorStateOfType<_RootShellState>()?._select(tab);
+  static void goTo(BuildContext context, int tab) => context.findAncestorStateOfType<_RootShellState>()?._select(tab);
 
   @override
   State<RootShell> createState() => _RootShellState();
@@ -53,13 +53,7 @@ class _RootShellState extends State<RootShell> {
   int _index = 0;
   final _visited = <int>{0};
 
-  static const _pages = [
-    PrayersScreen(),
-    QuranScreen(),
-    QiblaScreen(),
-    TasbihScreen(),
-    MoreScreen(),
-  ];
+  static const _pages = [PrayersScreen(), QuranScreen(), QiblaScreen(), TasbihScreen(), MoreScreen()];
 
   void _select(int i) {
     if (i == _index) return;
@@ -70,8 +64,18 @@ class _RootShellState extends State<RootShell> {
     });
   }
 
+  static const _tabs = [
+    (Icons.home_outlined, Icons.home_rounded, 'Home'),
+    (Icons.menu_book_outlined, Icons.menu_book_rounded, 'Quran'),
+    (Icons.explore_outlined, Icons.explore_rounded, 'Qibla'),
+    (Icons.radio_button_unchecked_rounded, Icons.radio_button_checked_rounded, 'Tasbih'),
+    (Icons.grid_view_outlined, Icons.grid_view_rounded, 'More'),
+  ];
+
   @override
   Widget build(BuildContext context) {
+    // Pages stop above the floating tab bar.
+    final navSpace = 84 + MediaQuery.paddingOf(context).bottom;
     return Scaffold(
       body: Stack(
         children: [
@@ -84,23 +88,97 @@ class _RootShellState extends State<RootShell> {
                   opacity: i == _index ? 1 : 0,
                   duration: const Duration(milliseconds: 220),
                   curve: Curves.easeOut,
-                  child: TickerMode(enabled: i == _index, child: _pages[i]),
+                  child: Padding(
+                    padding: EdgeInsets.only(bottom: navSpace),
+                    child: MediaQuery.removePadding(
+                      context: context,
+                      removeBottom: true,
+                      child: TickerMode(enabled: i == _index, child: _pages[i]),
+                    ),
+                  ),
                 ),
               ),
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 12 + MediaQuery.paddingOf(context).bottom,
+            child: Center(
+              child: _PillNav(tabs: _tabs, index: _index, onSelect: _select),
+            ),
+          ),
         ],
       ),
-      bottomNavigationBar: DecoratedBox(
-        decoration: BoxDecoration(border: Border(top: BorderSide(color: context.tokens.border))),
-        child: NavigationBar(
-          selectedIndex: _index,
-          onDestinationSelected: _select,
-          destinations: const [
-            NavigationDestination(icon: Icon(Icons.mosque_outlined), selectedIcon: Icon(Icons.mosque_rounded), label: 'Prayers'),
-            NavigationDestination(icon: Icon(Icons.menu_book_outlined), selectedIcon: Icon(Icons.menu_book_rounded), label: 'Quran'),
-            NavigationDestination(icon: Icon(Icons.explore_outlined), selectedIcon: Icon(Icons.explore_rounded), label: 'Qibla'),
-            NavigationDestination(icon: Icon(Icons.radio_button_unchecked_rounded), selectedIcon: Icon(Icons.radio_button_checked_rounded), label: 'Tasbih'),
-            NavigationDestination(icon: Icon(Icons.grid_view_outlined), selectedIcon: Icon(Icons.grid_view_rounded), label: 'More'),
-          ],
+    );
+  }
+}
+
+/// Floating white pill; the selected tab sits in a dark circle.
+class _PillNav extends StatelessWidget {
+  const _PillNav({required this.tabs, required this.index, required this.onSelect});
+  final List<(IconData, IconData, String)> tabs;
+  final int index;
+  final ValueChanged<int> onSelect;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(99),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.35), blurRadius: 24, offset: const Offset(0, 8))],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(99),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+          child: Container(
+            height: 64,
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              // Frosted glass: a light sheen over the blurred sky.
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Colors.white.withValues(alpha: 0.16), Colors.white.withValues(alpha: 0.07)],
+              ),
+              borderRadius: BorderRadius.circular(99),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.22)),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                for (var i = 0; i < tabs.length; i++)
+                  Tooltip(
+                    message: tabs[i].$3,
+                    child: Semantics(
+                      selected: i == index,
+                      button: true,
+                      label: tabs[i].$3,
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () => onSelect(i),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 250),
+                          curve: Curves.easeOutCubic,
+                          width: 56,
+                          height: 52,
+                          margin: const EdgeInsets.symmetric(horizontal: 1),
+                          decoration: BoxDecoration(
+                            color: i == index ? Colors.white : Colors.transparent,
+                            shape: BoxShape.circle,
+                            boxShadow: i == index ? [BoxShadow(color: Colors.white.withValues(alpha: 0.25), blurRadius: 14)] : null,
+                          ),
+                          child: Icon(
+                            i == index ? tabs[i].$2 : tabs[i].$1,
+                            color: i == index ? const Color(0xFF0A1826) : Colors.white.withValues(alpha: 0.78),
+                            size: 24,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
         ),
       ),
     );

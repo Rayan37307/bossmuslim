@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import '../state/app_state.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
+import '../widgets/night.dart';
 
 /// Quick picks offered when adding a counter.
 const tasbihPresets = [
@@ -19,6 +20,7 @@ const tasbihPresets = [
 const beadPalettes = [
   (Color(0xFFF0A6FF), Color(0xFFB21FE0), Color(0xFF5B0B7A)), // amethyst
   (Color(0xFFFFFFFF), Color(0xFFEDE8DF), Color(0xFFB9AE9C)), // pearl
+  (Color(0xFF9AF4FF), Color(0xFF1FB2C7), Color(0xFF0A5563)), // teal glow
   (Color(0xFF8BF7D0), Color(0xFF14C98E), Color(0xFF04795A)), // emerald
   (Color(0xFFFFE49A), Color(0xFFF2A900), Color(0xFFA85A06)), // amber
   (Color(0xFF9A9AA2), Color(0xFF404047), Color(0xFF111114)), // onyx
@@ -157,11 +159,12 @@ class _TasbihScreenState extends State<TasbihScreen> with SingleTickerProviderSt
               child: Row(
                 children: [
                   Expanded(child: Text('Tasbih', style: context.text.headlineMedium?.copyWith(fontSize: 26))),
-                  IconButton(
+                  GlassIconButton(
+                    icon: Icons.settings_outlined,
                     tooltip: 'Settings',
-                    onPressed: () => showSheet(context, (_) => const _TasbihSettingsSheet()),
-                    icon: Icon(Icons.settings_rounded, color: context.colors.primary),
+                    onTap: () => showSheet(context, (_) => const _TasbihSettingsSheet()),
                   ),
+                  const SizedBox(width: 8),
                 ],
               ),
             ),
@@ -291,10 +294,14 @@ class _TasbihCard extends StatelessWidget {
             margin: const EdgeInsets.fromLTRB(6, 4, 6, 26),
             padding: const EdgeInsets.fromLTRB(16, 18, 16, 30),
             decoration: BoxDecoration(
-              color: context.colors.surface,
+              gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Color(0xFF1B3B55), Color(0xFF10263A), Color(0xFF0C1E30)],
+              ),
               borderRadius: BorderRadius.circular(28),
-              border: Border.all(color: context.tokens.border),
-              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 16, offset: const Offset(0, 6))],
+              border: Border.all(color: const Color(0x26FFFFFF)),
+              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 20, offset: const Offset(0, 10))],
             ),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -326,10 +333,10 @@ class _TasbihCard extends StatelessWidget {
                     RollingText(
                       '${item.inRound}',
                       style: TextStyle(
-                        fontSize: 46,
-                        height: 1.15,
-                        fontWeight: FontWeight.w800,
-                        color: accent,
+                        fontSize: 52,
+                        height: 1.1,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.accentLight,
                         fontFeatures: const [FontFeature.tabularFigures()],
                       ),
                     ),
@@ -805,7 +812,7 @@ class _TasbihFullscreenState extends State<TasbihFullscreen> with SingleTickerPr
   Widget build(BuildContext context) {
     final s = AppState.instance;
     return Scaffold(
-      backgroundColor: const Color(0xFF052E22),
+      backgroundColor: AppColors.bg,
       body: ListenableBuilder(
         listenable: s,
         builder: (context, _) {

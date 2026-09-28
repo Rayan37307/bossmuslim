@@ -6,7 +6,10 @@ import '../services/prayer_service.dart';
 import '../state/app_state.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
-import '../widgets/scene.dart';
+import '../widgets/night.dart';
+import '../main.dart';
+import 'duas_screen.dart';
+import 'mosques_screen.dart';
 import 'calendar_screen.dart';
 import 'location_sheet.dart';
 import 'muslim_ai_screen.dart';
@@ -80,7 +83,11 @@ class _PrayersScreenState extends State<PrayersScreen> {
 
           return CustomScrollView(
             slivers: [
-              SliverToBoxAdapter(child: _Header(status: status, now: now)),
+              const SliverToBoxAdapter(child: _TopBar()),
+              SliverToBoxAdapter(child: _HeroCarousel(status: status, now: now)),
+              const SliverToBoxAdapter(
+                child: Padding(padding: EdgeInsets.symmetric(horizontal: 16), child: SectionHeader('Prayer Times')),
+              ),
               SliverToBoxAdapter(
                 child: _DateRow(
                   day: _day,
@@ -130,13 +137,11 @@ class _PrayersScreenState extends State<PrayersScreen> {
                 ),
               ),
               SliverPadding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
                 sliver: SliverList.list(
                   children: [
                     const SizedBox(height: 4),
                     _NextEventCard(now: now),
-                    const SizedBox(height: 12),
-                    const _AskAiCard(),
                     const SectionHeader('Fasting'),
                     Row(
                       children: [
@@ -155,9 +160,12 @@ class _PrayersScreenState extends State<PrayersScreen> {
                     ),
                     const SectionHeader('Verse of the day'),
                     _VerseCard(arabic: verse.$1, meaning: verse.$2, ref: verse.$3),
+                    SectionHeader('Features', action: 'See all', onAction: () => RootShell.goTo(context, 4)),
                   ],
                 ),
               ),
+              const SliverToBoxAdapter(child: _Features()),
+              const SliverToBoxAdapter(child: SizedBox(height: 24)),
             ],
           );
         },
@@ -166,112 +174,216 @@ class _PrayersScreenState extends State<PrayersScreen> {
   }
 }
 
-class _Header extends StatelessWidget {
-  const _Header({required this.status, required this.now});
-  final PrayerStatus status;
-  final DateTime now;
+class _TopBar extends StatelessWidget {
+  const _TopBar();
 
   @override
   Widget build(BuildContext context) {
     final state = AppState.instance;
-    final current = status.current;
-    final label = current != null ? '${current.label} time left' : '${status.next.label} begins in';
-    final remaining = (current != null ? status.currentEnds! : status.nextAt).difference(now);
+    return SafeArea(
+      bottom: false,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 10, 16, 14),
+        child: Row(
+          children: [
+            GlassIconButton(icon: Icons.place_outlined, tooltip: 'Change location', onTap: () => pickLocation(context)),
+            const SizedBox(width: 12),
+            Expanded(
+              child: GestureDetector(
+                onTap: () => pickLocation(context),
+                behavior: HitTestBehavior.opaque,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Assalamu alaikum', style: context.text.bodySmall?.copyWith(fontSize: 12.5)),
+                    Text(
+                      state.location.name.split(',').first,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16.5),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            GlassIconButton(
+              icon: Icons.calendar_month_outlined,
+              tooltip: 'Monthly timetable',
+              onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const TimetableScreen())),
+            ),
+            const SizedBox(width: 10),
+            GlassIconButton(icon: Icons.tune_rounded, tooltip: 'Calculation settings', onTap: () => showCalcSettings(context)),
+          ],
+        ),
+      ),
+    );
+  }
+}
 
-    return ClipRRect(
-      borderRadius: const BorderRadius.vertical(bottom: Radius.circular(28)),
-      child: SkyScene(
-        palette: SkyPalette.forPeriod(current, status.next),
-        child: SafeArea(
-          bottom: false,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 8, 26),
+/// Swipeable banners in the lantern style: prayer countdown, tasbih, Muslim AI.
+class _HeroCarousel extends StatefulWidget {
+  const _HeroCarousel({required this.status, required this.now});
+  final PrayerStatus status;
+  final DateTime now;
+
+  @override
+  State<_HeroCarousel> createState() => _HeroCarouselState();
+}
+
+class _HeroCarouselState extends State<_HeroCarousel> {
+  final _pages = PageController();
+  int _page = 0;
+
+  @override
+  void dispose() {
+    _pages.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final status = widget.status;
+    final current = status.current;
+    final remaining = (current != null ? status.currentEnds! : status.nextAt).difference(widget.now);
+    final slides = [
+      _Banner(
+        eyebrow: current != null ? '${current.label} time left' : '${status.next.label} begins in',
+        big: RollingText(
+          _countdown(remaining),
+          style: const TextStyle(fontSize: 34, height: 1.1, fontWeight: FontWeight.w700, letterSpacing: -0.5, fontFeatures: [FontFeature.tabularFigures()]),
+        ),
+        subtitle: '${status.next.label} at ${fmtTime(status.nextAt)}',
+      ),
+      _Banner(
+        title: 'Start Tasbih\nTracking',
+        subtitle: 'Remember Allah every day',
+        button: 'Get Start Now',
+        onTap: () => RootShell.goTo(context, 3),
+      ),
+      _Banner(
+        title: 'Ask\nMuslim AI',
+        subtitle: 'Answers from the Quran & Sunnah',
+        button: 'Ask a question',
+        onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const MuslimAiScreen())),
+      ),
+    ];
+    return Column(
+      children: [
+        SizedBox(
+          height: 196,
+          child: PageView(
+            controller: _pages,
+            onPageChanged: (i) => setState(() => _page = i),
+            children: [for (final s in slides) Padding(padding: const EdgeInsets.symmetric(horizontal: 16), child: s)],
+          ),
+        ),
+        const SizedBox(height: 14),
+        PageDots(count: slides.length, index: _page),
+      ],
+    );
+  }
+}
+
+class _Banner extends StatelessWidget {
+  const _Banner({this.eyebrow, this.title, this.big, this.subtitle, this.button, this.onTap});
+  final String? eyebrow;
+  final String? title;
+  final Widget? big;
+  final String? subtitle;
+  final String? button;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(22),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF1B3B55), Color(0xFF10263A), Color(0xFF0C1E30)],
+        ),
+        border: Border.all(color: const Color(0x26FFFFFF)),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 20, offset: const Offset(0, 10))],
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Stack(
+        children: [
+          const Positioned(right: -6, top: 0, bottom: 0, width: 170, child: LanternArt()),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(18, 18, 150, 18),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Row(
-                  children: [
-                    Flexible(
-                      child: Pressable(
-                        onTap: () => pickLocation(context),
-                        child: Container(
-                          padding: const EdgeInsets.fromLTRB(10, 7, 12, 7),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.16),
-                            borderRadius: BorderRadius.circular(99),
-                            border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(Icons.place_rounded, size: 16, color: Colors.white),
-                              const SizedBox(width: 4),
-                              Flexible(
-                                child: Text(
-                                  state.location.name.split(',').first,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13),
-                                ),
-                              ),
-                              const SizedBox(width: 6),
-                              const Icon(Icons.my_location_rounded, size: 14, color: Colors.white70),
-                            ],
-                          ),
-                        ),
-                      ),
+                if (eyebrow != null) Text(eyebrow!, style: const TextStyle(color: Color(0xFFB9C8D6), fontSize: 14)),
+                if (title != null)
+                  Text(title!, style: const TextStyle(fontSize: 23, height: 1.2, fontWeight: FontWeight.w600)),
+                if (big != null) FittedBox(fit: BoxFit.scaleDown, alignment: Alignment.centerLeft, child: big),
+                if (subtitle != null) ...[
+                  const SizedBox(height: 8),
+                  Text(subtitle!, style: const TextStyle(color: Color(0xFFD5DEE7), fontSize: 13.5)),
+                ],
+                if (button != null) ...[
+                  const SizedBox(height: 14),
+                  OutlinedButton(
+                    onPressed: onTap,
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size(0, 40),
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      backgroundColor: Colors.white.withValues(alpha: 0.04),
                     ),
-                    const Spacer(),
-                    IconButton(
-                      tooltip: 'Monthly timetable',
-                      onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const TimetableScreen())),
-                      icon: const Icon(Icons.calendar_month_outlined, color: Colors.white),
-                    ),
-                    IconButton(
-                      tooltip: 'Calculation settings',
-                      onPressed: () => showCalcSettings(context),
-                      icon: const Icon(Icons.tune_rounded, color: Colors.white),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 22),
-                AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 300),
-                  child: Text(label, key: ValueKey(label), style: const TextStyle(color: Colors.white70, fontSize: 15, fontWeight: FontWeight.w500)),
-                ),
-                const SizedBox(height: 2),
-                RollingText(
-                  _countdown(remaining),
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 42,
-                    height: 1.15,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: -1,
-                    fontFeatures: [FontFeature.tabularFigures()],
+                    child: Text(button!, style: const TextStyle(fontSize: 13.5)),
                   ),
-                ),
-                const SizedBox(height: 10),
-                Row(
-                  children: [
-                    Text(
-                      current != null && current != Salah.isha ? '${status.next.label} starts at' : '${status.next.label} at',
-                      style: const TextStyle(color: Colors.white, fontSize: 14),
-                    ),
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
-                      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8)),
-                      child: Text(
-                        fmtTime(status.nextAt),
-                        style: const TextStyle(color: AppColors.accentDark, fontWeight: FontWeight.w700, fontSize: 13),
-                      ),
-                    ),
-                  ],
-                ),
+                ],
               ],
             ),
           ),
-        ),
+        ],
+      ),
+    );
+  }
+}
+
+class _Features extends StatelessWidget {
+  const _Features();
+
+  @override
+  Widget build(BuildContext context) {
+    void push(Widget page) => Navigator.of(context).push(MaterialPageRoute(builder: (_) => page));
+    final items = [
+      (Icons.menu_book_rounded, 'Quran', const Color(0xFF6FD3C2), () => RootShell.goTo(context, 1)),
+      (Icons.volunteer_activism_rounded, 'Dua', const Color(0xFF7EB8FF), () => push(const DuasPage())),
+      (Icons.auto_awesome_rounded, 'Muslim AI', AppColors.gold, () => push(const MuslimAiScreen())),
+      (Icons.task_alt_rounded, 'Tracker', const Color(0xFF8BE08F), () => push(const TrackerScreen())),
+      (Icons.explore_rounded, 'Qibla', const Color(0xFFFFA86B), () => RootShell.goTo(context, 2)),
+      (Icons.mosque_rounded, 'Mosques', const Color(0xFFE59BFF), () => push(const MosquesScreen())),
+    ];
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: GridView.count(
+        crossAxisCount: 3,
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        mainAxisSpacing: 12,
+        crossAxisSpacing: 12,
+        childAspectRatio: 1.05,
+        padding: EdgeInsets.zero,
+        children: [
+          for (final f in items)
+            Panel(
+              onTap: f.$4,
+              padding: const EdgeInsets.all(8),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(f.$1, size: 30, color: f.$3),
+                  const SizedBox(height: 10),
+                  Text(f.$2, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500)),
+                ],
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -363,20 +475,25 @@ class _PrayerList extends StatelessWidget {
     ];
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Column(
-        children: [
-          for (var i = 0; i < rows.length; i++)
-            FadeIn(
-              index: i,
-              child: _PrayerCard(
+      child: Panel(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        child: Column(
+          children: [
+            for (var i = 0; i < rows.length; i++) ...[
+              if (i > 0) const Divider(indent: 8, endIndent: 8),
+              FadeIn(
+                index: i,
+                child: _PrayerCard(
                 day: times.date,
                 row: rows[i],
                 active: rows[i].salah != null && status?.current == rows[i].salah,
                 next: rows[i].salah != null && status?.next == rows[i].salah,
-                forbiddenNow: rows[i].forbiddenUntil != null && status != null && !now.isBefore(rows[i].time) && now.isBefore(rows[i].forbiddenUntil!),
+                  forbiddenNow: rows[i].forbiddenUntil != null && status != null && !now.isBefore(rows[i].time) && now.isBefore(rows[i].forbiddenUntil!),
+                ),
               ),
-            ),
-        ],
+            ],
+          ],
+        ),
       ),
     );
   }
@@ -394,28 +511,24 @@ class _PrayerCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final state = AppState.instance;
     final accent = context.colors.primary;
-    final dark = Theme.of(context).brightness == Brightness.dark;
     final salah = row.salah;
     final trackable = salah != null && fardPrayers.contains(salah);
     final muted = context.tokens.muted;
-    final iconColor = forbiddenNow ? AppColors.danger : (active ? accent : (salah == null ? muted : accent));
-
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeOut,
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.fromLTRB(14, 12, 8, 12),
+      margin: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.fromLTRB(8, 8, 0, 8),
       decoration: BoxDecoration(
-        color: active ? context.tokens.accentSoft : (dark ? context.colors.surface : const Color(0xFFEEF6F1)),
+        color: active ? context.tokens.accentSoft : Colors.transparent,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: active ? accent.withValues(alpha: 0.55) : (forbiddenNow ? AppColors.danger.withValues(alpha: 0.4) : Colors.transparent),
-          width: 1.3,
+          color: active ? accent.withValues(alpha: 0.5) : (forbiddenNow ? AppColors.danger.withValues(alpha: 0.4) : Colors.transparent),
         ),
       ),
       child: Row(
         children: [
-          Icon(row.icon, color: iconColor, size: 28),
+          IconTile(row.icon, size: 44, color: forbiddenNow ? AppColors.danger : (active ? AppColors.accentLight : null)),
           const SizedBox(width: 14),
           Expanded(
             child: Column(
@@ -453,7 +566,7 @@ class _PrayerCard extends StatelessWidget {
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w700,
-              color: active ? accent : null,
+              color: active ? AppColors.accentLight : null,
               fontFeatures: const [FontFeature.tabularFigures()],
             ),
           ),
@@ -564,35 +677,6 @@ class _NextEventCard extends StatelessWidget {
           ),
           Text('Calendar', style: TextStyle(color: context.colors.primary, fontWeight: FontWeight.w600, fontSize: 13)),
           Icon(Icons.chevron_right_rounded, size: 18, color: context.colors.primary),
-        ],
-      ),
-    );
-  }
-}
-
-class _AskAiCard extends StatelessWidget {
-  const _AskAiCard();
-
-  @override
-  Widget build(BuildContext context) {
-    return Panel(
-      onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const MuslimAiScreen())),
-      padding: const EdgeInsets.all(14),
-      child: Row(
-        children: [
-          const IconTile(Icons.auto_awesome_rounded, size: 40),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('Ask Muslim AI', style: TextStyle(fontWeight: FontWeight.w600)),
-                const SizedBox(height: 2),
-                Text('Answers cited from the Quran and hadith', style: context.text.bodySmall),
-              ],
-            ),
-          ),
-          Icon(Icons.chevron_right_rounded, color: context.colors.primary),
         ],
       ),
     );

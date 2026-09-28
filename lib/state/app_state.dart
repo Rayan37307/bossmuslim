@@ -158,7 +158,7 @@ class AppState extends ChangeNotifier {
     }
     if (tasbihs.isEmpty) tasbihs = [TasbihItem(name: defaultTasbihs.first.$1, arabic: defaultTasbihs.first.$2)];
     tasbihIndex = (p.getInt('tasbihIndex') ?? 0).clamp(0, tasbihs.length - 1);
-    tasbihBead = p.getInt('tasbihBead') ?? 2;
+    tasbihBead = p.getInt('tasbihBead') ?? 2; // teal glow
     tasbihVibrate = p.getBool('tasbihVibrate') ?? true;
     tasbihSound = p.getBool('tasbihSound') ?? false;
     final log = p.getString('prayerLog');

@@ -119,7 +119,7 @@ class _QuranScreenState extends State<QuranScreen> {
             padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(16),
-              gradient: const LinearGradient(colors: [Color(0xFF0E8A5F), Color(0xFF065F46)]),
+              gradient: const LinearGradient(colors: [Color(0xFF1B3B55), Color(0xFF0C1E30)]),
             ),
             child: Row(
               children: [

@@ -3,27 +3,25 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import 'widgets/night.dart';
+
+/// Night palette: deep navy sky, frosted glass cards, teal accents and lantern gold.
 class AppColors {
-  static const accent = Color(0xFF0E8A5F);
-  static const accentLight = Color(0xFF22C58B);
-  static const accentDark = Color(0xFF0B6B4A);
+  static const accent = Color(0xFF2B95A5); // buttons, toggles, active states
+  static const accentLight = Color(0xFF22B8CC); // big numbers, highlights
+  static const accentDark = Color(0xFF1C6E7B);
+  static const gold = Color(0xFFE3BC6A);
 
-  // Light
-  static const lightBg = Color(0xFFF6FAF8);
-  static const lightSurface = Colors.white;
-  static const lightBorder = Color(0xFFE0EBE5);
-  static const lightText = Color(0xFF0F1F19);
-  static const lightMuted = Color(0xFF5E7068);
+  static const bg = Color(0xFF081421);
+  static const bgTop = Color(0xFF10263A);
+  static const raised = Color(0xFF0F2235); // opaque surface for sheets, dialogs, overlapping pills
+  static const glass = Color(0x0FFFFFFF); // translucent card fill
+  static const border = Color(0x24FFFFFF);
+  static const text = Color(0xFFF2F6FA);
+  static const muted = Color(0xFF93A5B6);
 
-  // Dark
-  static const darkBg = Color(0xFF07110D);
-  static const darkSurface = Color(0xFF0F1D17);
-  static const darkBorder = Color(0xFF1E3029);
-  static const darkText = Color(0xFFE6F2EC);
-  static const darkMuted = Color(0xFF89A297);
-
-  static const danger = Color(0xFFDC2626);
-  static const warning = Color(0xFFD97706);
+  static const danger = Color(0xFFF05252);
+  static const warning = Color(0xFFF2A33A);
 }
 
 /// Semantic tokens that aren't part of [ColorScheme].
@@ -32,17 +30,20 @@ class Tokens extends ThemeExtension<Tokens> {
     required this.muted,
     required this.border,
     required this.accentSoft,
+    required this.glass,
   });
 
   final Color muted;
   final Color border;
   final Color accentSoft;
+  final Color glass;
 
   @override
-  Tokens copyWith({Color? muted, Color? border, Color? accentSoft}) => Tokens(
+  Tokens copyWith({Color? muted, Color? border, Color? accentSoft, Color? glass}) => Tokens(
         muted: muted ?? this.muted,
         border: border ?? this.border,
         accentSoft: accentSoft ?? this.accentSoft,
+        glass: glass ?? this.glass,
       );
 
   @override
@@ -52,6 +53,7 @@ class Tokens extends ThemeExtension<Tokens> {
       muted: Color.lerp(muted, other.muted, t)!,
       border: Color.lerp(border, other.border, t)!,
       accentSoft: Color.lerp(accentSoft, other.accentSoft, t)!,
+      glass: Color.lerp(glass, other.glass, t)!,
     );
   }
 }
@@ -69,24 +71,34 @@ TextStyle arabicStyle({double size = 26, Color? color, double height = 2.0}) =>
 TextStyle quranStyle({double size = 28, Color? color, double height = 2.2}) =>
     GoogleFonts.amiriQuran(fontSize: size, color: color, height: height);
 
-/// Serif for headings; body text uses Plus Jakarta Sans.
-TextStyle headingStyle(TextStyle? base) => GoogleFonts.playfairDisplay(textStyle: base);
+/// Headings use the same geometric sans as the body, a touch heavier.
+TextStyle headingStyle(TextStyle? base) => GoogleFonts.outfit(textStyle: base);
 
-ThemeData buildTheme(Brightness brightness) {
-  final dark = brightness == Brightness.dark;
-  final bg = dark ? AppColors.darkBg : AppColors.lightBg;
-  final surface = dark ? AppColors.darkSurface : AppColors.lightSurface;
-  final border = dark ? AppColors.darkBorder : AppColors.lightBorder;
-  final fg = dark ? AppColors.darkText : AppColors.lightText;
-  final muted = dark ? AppColors.darkMuted : AppColors.lightMuted;
-  final accent = dark ? AppColors.accentLight : AppColors.accent;
+/// Paints the night sky behind every page, so each route carries its own backdrop during transitions.
+class _NightTransitions extends PageTransitionsBuilder {
+  const _NightTransitions(this.inner);
+  final PageTransitionsBuilder inner;
 
-  final scheme = ColorScheme(
-    brightness: brightness,
+  @override
+  Widget buildTransitions<T>(PageRoute<T> route, BuildContext context, Animation<double> a, Animation<double> b, Widget child) =>
+      inner.buildTransitions(route, context, a, b, Stack(fit: StackFit.expand, children: [const NightBackground(), child]));
+}
+
+/// The app has one look: the night theme. [brightness] is kept for API compatibility.
+ThemeData buildTheme([Brightness brightness = Brightness.dark]) {
+  const bg = AppColors.bg;
+  const surface = AppColors.raised;
+  const border = AppColors.border;
+  const fg = AppColors.text;
+  const muted = AppColors.muted;
+  const accent = AppColors.accent;
+
+  const scheme = ColorScheme(
+    brightness: Brightness.dark,
     primary: accent,
     onPrimary: Colors.white,
-    secondary: accent,
-    onSecondary: Colors.white,
+    secondary: AppColors.gold,
+    onSecondary: Color(0xFF1A1206),
     error: AppColors.danger,
     onError: Colors.white,
     surface: surface,
@@ -95,28 +107,26 @@ ThemeData buildTheme(Brightness brightness) {
     surfaceContainerLow: bg,
     surfaceContainer: surface,
     surfaceContainerHigh: surface,
-    surfaceContainerHighest: dark ? const Color(0xFF152720) : const Color(0xFFEDF5F0),
+    surfaceContainerHighest: Color(0x14FFFFFF),
     outline: border,
     outlineVariant: border,
   );
 
   final base = ThemeData(
     useMaterial3: true,
-    brightness: brightness,
+    brightness: Brightness.dark,
     colorScheme: scheme,
-    scaffoldBackgroundColor: bg,
+    scaffoldBackgroundColor: Colors.transparent,
+    canvasColor: bg,
     splashFactory: InkSparkle.splashFactory,
   );
 
-  final textTheme = GoogleFonts.plusJakartaSansTextTheme(base.textTheme).apply(
-    bodyColor: fg,
-    displayColor: fg,
-  );
+  final textTheme = GoogleFonts.outfitTextTheme(base.textTheme).apply(bodyColor: fg, displayColor: fg);
 
   return base.copyWith(
     textTheme: textTheme.copyWith(
-      headlineMedium: headingStyle(textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w700, letterSpacing: -0.2)),
-      titleLarge: headingStyle(textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700, letterSpacing: 0)),
+      headlineMedium: textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w600, letterSpacing: -0.3),
+      titleLarge: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600, letterSpacing: -0.2),
       titleMedium: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
       bodySmall: textTheme.bodySmall?.copyWith(color: muted),
     ),
@@ -124,118 +134,123 @@ ThemeData buildTheme(Brightness brightness) {
       Tokens(
         muted: muted,
         border: border,
-        accentSoft: accent.withValues(alpha: dark ? 0.16 : 0.08),
+        accentSoft: accent.withValues(alpha: 0.18),
+        glass: AppColors.glass,
       ),
     ],
     appBarTheme: AppBarTheme(
-      backgroundColor: bg,
+      backgroundColor: Colors.transparent,
       surfaceTintColor: Colors.transparent,
       elevation: 0,
       scrolledUnderElevation: 0,
-      centerTitle: false,
+      centerTitle: true,
       foregroundColor: fg,
-      titleTextStyle: headingStyle(textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700, fontSize: 21)),
-      systemOverlayStyle: dark ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark,
+      titleTextStyle: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600, fontSize: 20),
+      systemOverlayStyle: SystemUiOverlayStyle.light,
     ),
     cardTheme: CardThemeData(
-      color: surface,
+      color: AppColors.glass,
       elevation: 0,
       margin: EdgeInsets.zero,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: border),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18), side: const BorderSide(color: border)),
     ),
-    dividerTheme: DividerThemeData(color: border, thickness: 1, space: 1),
-    listTileTheme: ListTileThemeData(
+    dividerTheme: const DividerThemeData(color: Color(0x14FFFFFF), thickness: 1, space: 1),
+    listTileTheme: const ListTileThemeData(
       iconColor: muted,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+      contentPadding: EdgeInsets.symmetric(horizontal: 16),
     ),
     navigationBarTheme: NavigationBarThemeData(
       backgroundColor: surface,
       surfaceTintColor: Colors.transparent,
       elevation: 0,
       height: 68,
-      indicatorColor: accent.withValues(alpha: dark ? 0.2 : 0.1),
+      indicatorColor: accent.withValues(alpha: 0.2),
       labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-      iconTheme: WidgetStateProperty.resolveWith(
-        (s) => IconThemeData(color: s.contains(WidgetState.selected) ? accent : muted, size: 24),
-      ),
-      labelTextStyle: WidgetStateProperty.resolveWith(
-        (s) => TextStyle(
-          fontSize: 12,
-          fontWeight: s.contains(WidgetState.selected) ? FontWeight.w600 : FontWeight.w500,
-          color: s.contains(WidgetState.selected) ? accent : muted,
-        ),
-      ),
     ),
     switchTheme: SwitchThemeData(
-      thumbColor: WidgetStateProperty.resolveWith(
-        (s) => s.contains(WidgetState.selected) ? Colors.white : (dark ? muted : Colors.white),
-      ),
-      trackColor: WidgetStateProperty.resolveWith(
-        (s) => s.contains(WidgetState.selected) ? accent : border,
-      ),
+      thumbColor: WidgetStateProperty.all(Colors.white),
+      trackColor: WidgetStateProperty.resolveWith((s) => s.contains(WidgetState.selected) ? accent : const Color(0x26FFFFFF)),
       trackOutlineColor: WidgetStateProperty.all(Colors.transparent),
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: surface,
+      fillColor: AppColors.glass,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      hintStyle: TextStyle(color: muted),
+      hintStyle: const TextStyle(color: muted),
+      labelStyle: const TextStyle(color: muted),
       prefixIconColor: muted,
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: border)),
-      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: border)),
-      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: accent, width: 1.5)),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: border)),
+      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: border)),
+      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: accent, width: 1.5)),
     ),
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
         backgroundColor: accent,
         foregroundColor: Colors.white,
-        minimumSize: const Size(0, 48),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+        disabledBackgroundColor: const Color(0x1FFFFFFF),
+        minimumSize: const Size(0, 50),
+        shape: const StadiumBorder(),
+        textStyle: GoogleFonts.outfit(fontWeight: FontWeight.w600, fontSize: 15.5),
       ),
     ),
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
         foregroundColor: fg,
-        minimumSize: const Size(0, 48),
-        side: BorderSide(color: border),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+        minimumSize: const Size(0, 50),
+        side: const BorderSide(color: Color(0x40FFFFFF)),
+        shape: const StadiumBorder(),
+        textStyle: GoogleFonts.outfit(fontWeight: FontWeight.w500, fontSize: 15),
+      ),
+    ),
+    textButtonTheme: TextButtonThemeData(style: TextButton.styleFrom(foregroundColor: AppColors.accentLight)),
+    segmentedButtonTheme: SegmentedButtonThemeData(
+      style: SegmentedButton.styleFrom(
+        backgroundColor: AppColors.glass,
+        foregroundColor: muted,
+        selectedBackgroundColor: accent.withValues(alpha: 0.25),
+        selectedForegroundColor: fg,
+        side: const BorderSide(color: border),
       ),
     ),
     chipTheme: ChipThemeData(
-      backgroundColor: surface,
-      selectedColor: accent.withValues(alpha: dark ? 0.2 : 0.1),
-      side: BorderSide(color: border),
+      backgroundColor: AppColors.glass,
+      selectedColor: accent.withValues(alpha: 0.25),
+      side: const BorderSide(color: border),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
-      labelStyle: TextStyle(color: fg, fontWeight: FontWeight.w500, fontSize: 13),
+      labelStyle: const TextStyle(color: fg, fontWeight: FontWeight.w500, fontSize: 13),
       showCheckmark: false,
     ),
-    bottomSheetTheme: BottomSheetThemeData(
+    progressIndicatorTheme: const ProgressIndicatorThemeData(color: accent),
+    bottomSheetTheme: const BottomSheetThemeData(
       backgroundColor: surface,
       surfaceTintColor: Colors.transparent,
       showDragHandle: true,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      dragHandleColor: Color(0x40FFFFFF),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        side: BorderSide(color: border),
+      ),
     ),
     dialogTheme: DialogThemeData(
       backgroundColor: surface,
       surfaceTintColor: Colors.transparent,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24), side: const BorderSide(color: border)),
     ),
+    datePickerTheme: const DatePickerThemeData(backgroundColor: surface, surfaceTintColor: Colors.transparent),
     snackBarTheme: SnackBarThemeData(
       behavior: SnackBarBehavior.floating,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      backgroundColor: const Color(0xFF1B3349),
+      contentTextStyle: GoogleFonts.outfit(color: fg),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
     ),
     pageTransitionsTheme: const PageTransitionsTheme(
       builders: {
-        TargetPlatform.android: FadeForwardsPageTransitionsBuilder(),
-        TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
-        TargetPlatform.linux: FadeForwardsPageTransitionsBuilder(),
-        TargetPlatform.macOS: CupertinoPageTransitionsBuilder(),
-        TargetPlatform.windows: FadeForwardsPageTransitionsBuilder(),
+        TargetPlatform.android: _NightTransitions(FadeForwardsPageTransitionsBuilder()),
+        TargetPlatform.iOS: _NightTransitions(CupertinoPageTransitionsBuilder()),
+        TargetPlatform.linux: _NightTransitions(FadeForwardsPageTransitionsBuilder()),
+        TargetPlatform.macOS: _NightTransitions(CupertinoPageTransitionsBuilder()),
+        TargetPlatform.windows: _NightTransitions(FadeForwardsPageTransitionsBuilder()),
+        TargetPlatform.fuchsia: _NightTransitions(FadeForwardsPageTransitionsBuilder()),
       },
     ),
   );

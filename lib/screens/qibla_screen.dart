@@ -478,11 +478,11 @@ class _CompassPainter extends CustomPainter {
       face,
       Paint()
         ..shader = RadialGradient(
-          colors: dark ? const [Color(0xFF152720), Color(0xFF0F1D17)] : const [Colors.white, Color(0xFFF1F4F8)],
+          colors: dark ? const [Color(0xFF14304A), Color(0xFF0C1E30)] : const [Colors.white, Color(0xFFF1F4F8)],
         ).createShader(Rect.fromCircle(center: c, radius: face)),
     );
 
-    final ink = dark ? const Color(0xFFE6F2EC) : const Color(0xFF12241C);
+    final ink = dark ? const Color(0xFFF2F6FA) : const Color(0xFF12241C);
     for (var d = 0; d < 360; d += 2) {
       final major = d % 30 == 0;
       final mid = d % 10 == 0;

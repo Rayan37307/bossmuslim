@@ -113,8 +113,8 @@ class Panel extends StatelessWidget {
     final box = Container(
       padding: padding,
       decoration: BoxDecoration(
-        color: color ?? context.colors.surface,
-        borderRadius: BorderRadius.circular(16),
+        color: color ?? context.tokens.glass,
+        borderRadius: BorderRadius.circular(18),
         border: Border.all(color: context.tokens.border),
       ),
       child: child,
@@ -131,15 +131,17 @@ class IconTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = color ?? context.colors.primary;
+    // Night style: glass square with a thin border; icons are white unless a colour is given.
+    final c = color ?? Colors.white;
     return Container(
       width: size,
       height: size,
       decoration: BoxDecoration(
-        color: c.withValues(alpha: Theme.of(context).brightness == Brightness.dark ? 0.18 : 0.09),
+        color: color == null ? context.tokens.glass : c.withValues(alpha: 0.14),
         borderRadius: BorderRadius.circular(size * 0.3),
+        border: Border.all(color: color == null ? const Color(0x2EFFFFFF) : c.withValues(alpha: 0.35)),
       ),
-      child: Icon(icon, color: c, size: size * 0.52),
+      child: Icon(icon, color: c, size: size * 0.5),
     );
   }
 }
@@ -157,12 +159,12 @@ class SectionHeader extends StatelessWidget {
       child: Row(
         children: [
           Expanded(
-            child: Text(title, style: headingStyle(context.text.titleMedium?.copyWith(fontSize: 18, fontWeight: FontWeight.w700))),
+            child: Text(title, style: headingStyle(context.text.titleMedium?.copyWith(fontSize: 19, fontWeight: FontWeight.w600))),
           ),
           if (action != null)
             GestureDetector(
               onTap: onAction,
-              child: Text(action!, style: TextStyle(color: context.colors.primary, fontWeight: FontWeight.w600, fontSize: 13)),
+              child: Text(action!, style: TextStyle(color: context.colors.onSurface.withValues(alpha: 0.85), fontWeight: FontWeight.w400, fontSize: 14)),
             ),
         ],
       ),

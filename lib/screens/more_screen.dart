@@ -208,22 +208,6 @@ class MoreScreen extends StatelessWidget {
                 ),
               ),
             ]),
-            const SectionHeader('Appearance'),
-            SegmentedButton<ThemeMode>(
-              showSelectedIcon: false,
-              style: SegmentedButton.styleFrom(
-                selectedBackgroundColor: context.tokens.accentSoft,
-                selectedForegroundColor: context.colors.primary,
-                side: BorderSide(color: context.tokens.border),
-              ),
-              segments: const [
-                ButtonSegment(value: ThemeMode.system, label: Text('System'), icon: Icon(Icons.brightness_auto_outlined, size: 18)),
-                ButtonSegment(value: ThemeMode.light, label: Text('Light'), icon: Icon(Icons.light_mode_outlined, size: 18)),
-                ButtonSegment(value: ThemeMode.dark, label: Text('Dark'), icon: Icon(Icons.dark_mode_outlined, size: 18)),
-              ],
-              selected: {s.themeMode},
-              onSelectionChanged: (v) => s.setThemeMode(v.first),
-            ),
             const SectionHeader('Questions'),
             _group(context, [
               for (final q in _faq)

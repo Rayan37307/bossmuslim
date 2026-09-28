@@ -198,7 +198,7 @@ class _SurahHeader extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
-        gradient: const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFF0E8A5F), Color(0xFF065F46)]),
+        gradient: const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFF1B3B55), Color(0xFF0C1E30)]),
       ),
       child: Column(
         children: [
