@@ -65,6 +65,13 @@ extension ThemeX on BuildContext {
 TextStyle arabicStyle({double size = 26, Color? color, double height = 2.0}) =>
     GoogleFonts.amiri(fontSize: size, color: color, height: height);
 
+/// Mushaf-style script for Quran verses.
+TextStyle quranStyle({double size = 28, Color? color, double height = 2.2}) =>
+    GoogleFonts.amiriQuran(fontSize: size, color: color, height: height);
+
+/// Serif for headings; body text uses Plus Jakarta Sans.
+TextStyle headingStyle(TextStyle? base) => GoogleFonts.playfairDisplay(textStyle: base);
+
 ThemeData buildTheme(Brightness brightness) {
   final dark = brightness == Brightness.dark;
   final bg = dark ? AppColors.darkBg : AppColors.lightBg;
@@ -101,15 +108,15 @@ ThemeData buildTheme(Brightness brightness) {
     splashFactory: InkSparkle.splashFactory,
   );
 
-  final textTheme = GoogleFonts.interTextTheme(base.textTheme).apply(
+  final textTheme = GoogleFonts.plusJakartaSansTextTheme(base.textTheme).apply(
     bodyColor: fg,
     displayColor: fg,
   );
 
   return base.copyWith(
     textTheme: textTheme.copyWith(
-      headlineMedium: textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w700, letterSpacing: -0.5),
-      titleLarge: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700, letterSpacing: -0.3),
+      headlineMedium: headingStyle(textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w700, letterSpacing: -0.2)),
+      titleLarge: headingStyle(textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700, letterSpacing: 0)),
       titleMedium: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
       bodySmall: textTheme.bodySmall?.copyWith(color: muted),
     ),
@@ -127,7 +134,7 @@ ThemeData buildTheme(Brightness brightness) {
       scrolledUnderElevation: 0,
       centerTitle: false,
       foregroundColor: fg,
-      titleTextStyle: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700, fontSize: 20),
+      titleTextStyle: headingStyle(textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700, fontSize: 21)),
       systemOverlayStyle: dark ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark,
     ),
     cardTheme: CardThemeData(

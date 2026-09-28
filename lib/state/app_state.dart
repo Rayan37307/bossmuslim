@@ -100,6 +100,10 @@ class AppState extends ChangeNotifier {
   late bool tasbihVibrate;
   late bool tasbihSound;
 
+  // Muslim AI: the user's own free API keys, by provider name.
+  late Map<String, String> aiKeys;
+  late String aiProvider;
+
   // Namaz tracker: 'yyyy-mm-dd' -> {salah name -> PrayerMark name}
   late Map<String, Map<String, String>> prayerLog;
 
@@ -162,6 +166,11 @@ class AppState extends ChangeNotifier {
         ? {}
         : (jsonDecode(log) as Map<String, dynamic>).map((k, v) => MapEntry(k, Map<String, String>.from(v)));
     hijriOffset = p.getInt('hijriOffset') ?? 0;
+    final keys = p.getString('aiKeys');
+    aiKeys = keys == null ? {} : Map<String, String>.from(jsonDecode(keys));
+    final oldGemini = p.getString('geminiKey');
+    if (oldGemini != null && oldGemini.isNotEmpty) aiKeys.putIfAbsent('gemini', () => oldGemini);
+    aiProvider = p.getString('aiProvider') ?? 'gemini';
     final daily = p.getString('tasbihDaily');
     tasbihDaily = daily == null ? {} : Map<String, int>.from(jsonDecode(daily));
 
@@ -401,6 +410,30 @@ class AppState extends ChangeNotifier {
     if (entry.isEmpty) prayerLog.remove(key);
     notifyListeners();
     await _prefs.setString('prayerLog', jsonEncode(prayerLog));
+  }
+
+  String get aiKey => aiKeys[aiProvider] ?? '';
+
+  /// Saves (or, with an empty key, removes) a provider's key; saving also makes it the active provider.
+  Future<void> setAiKey(String provider, String key) async {
+    key = key.trim();
+    if (key.isEmpty) {
+      aiKeys.remove(provider);
+      if (aiProvider == provider && aiKeys.isNotEmpty) aiProvider = aiKeys.keys.first;
+    } else {
+      aiKeys[provider] = key;
+      aiProvider = provider;
+    }
+    await _prefs.setString('aiKeys', jsonEncode(aiKeys));
+    await _prefs.setString('aiProvider', aiProvider);
+    await _prefs.remove('geminiKey');
+    notifyListeners();
+  }
+
+  Future<void> setAiProvider(String provider) async {
+    aiProvider = provider;
+    await _prefs.setString('aiProvider', provider);
+    notifyListeners();
   }
 
   Future<void> setHijriOffset(int days) async {

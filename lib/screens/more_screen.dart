@@ -10,6 +10,7 @@ import '../widgets/common.dart';
 import 'duas_screen.dart';
 import 'location_sheet.dart';
 import 'mosques_screen.dart';
+import 'muslim_ai_screen.dart';
 import 'calendar_screen.dart';
 import 'timetable_screen.dart';
 import 'tracker_screen.dart';
@@ -60,6 +61,8 @@ class MoreScreen extends StatelessWidget {
                 _tool(context, Icons.task_alt_rounded, 'Namaz Tracker', () => _push(context, const TrackerScreen())),
                 const SizedBox(width: 12),
                 _tool(context, Icons.event_note_outlined, 'Islamic Calendar', () => _push(context, const CalendarScreen())),
+                const SizedBox(width: 12),
+                _tool(context, Icons.auto_awesome_rounded, 'Muslim AI', () => _push(context, const MuslimAiScreen())),
               ],
             ),
             const SizedBox(height: 12),

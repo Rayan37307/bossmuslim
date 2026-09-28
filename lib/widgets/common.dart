@@ -157,7 +157,7 @@ class SectionHeader extends StatelessWidget {
       child: Row(
         children: [
           Expanded(
-            child: Text(title, style: context.text.titleMedium?.copyWith(fontSize: 16)),
+            child: Text(title, style: headingStyle(context.text.titleMedium?.copyWith(fontSize: 18, fontWeight: FontWeight.w700))),
           ),
           if (action != null)
             GestureDetector(

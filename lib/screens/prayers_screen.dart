@@ -9,6 +9,7 @@ import '../widgets/common.dart';
 import '../widgets/scene.dart';
 import 'calendar_screen.dart';
 import 'location_sheet.dart';
+import 'muslim_ai_screen.dart';
 import 'timetable_screen.dart';
 import 'tracker_screen.dart';
 
@@ -134,6 +135,8 @@ class _PrayersScreenState extends State<PrayersScreen> {
                   children: [
                     const SizedBox(height: 4),
                     _NextEventCard(now: now),
+                    const SizedBox(height: 12),
+                    const _AskAiCard(),
                     const SectionHeader('Fasting'),
                     Row(
                       children: [
@@ -561,6 +564,35 @@ class _NextEventCard extends StatelessWidget {
           ),
           Text('Calendar', style: TextStyle(color: context.colors.primary, fontWeight: FontWeight.w600, fontSize: 13)),
           Icon(Icons.chevron_right_rounded, size: 18, color: context.colors.primary),
+        ],
+      ),
+    );
+  }
+}
+
+class _AskAiCard extends StatelessWidget {
+  const _AskAiCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return Panel(
+      onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const MuslimAiScreen())),
+      padding: const EdgeInsets.all(14),
+      child: Row(
+        children: [
+          const IconTile(Icons.auto_awesome_rounded, size: 40),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Ask Muslim AI', style: TextStyle(fontWeight: FontWeight.w600)),
+                const SizedBox(height: 2),
+                Text('Answers cited from the Quran and hadith', style: context.text.bodySmall),
+              ],
+            ),
+          ),
+          Icon(Icons.chevron_right_rounded, color: context.colors.primary),
         ],
       ),
     );
